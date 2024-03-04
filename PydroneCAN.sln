@@ -1,0 +1,45 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "env", "env", "{78D03999-1104-4DB5-96B1-7865C18E2AF3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "lib", "lib", "{970D3367-C942-4077-818F-4DBA16C24029}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "python3.10", "python3.10", "{CEE1A449-79B5-426B-9BC3-5C80D2383C04}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "site-packages", "site-packages", "{FF1AF53F-1209-4769-A08B-6FFBAF7CA154}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "pymavlink", "pymavlink", "{2F2CD173-B598-4C64-897C-2E338DEE54E2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "generator", "generator", "{8BA8DEC7-EC7E-4032-BD58-833F512DCEA0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MAVLink", "env\lib\python3.10\site-packages\pymavlink\generator\CS\MAVLink.csproj", "{728C464D-6452-4DB3-AF55-139776F63C7C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{728C464D-6452-4DB3-AF55-139776F63C7C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{728C464D-6452-4DB3-AF55-139776F63C7C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{728C464D-6452-4DB3-AF55-139776F63C7C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{728C464D-6452-4DB3-AF55-139776F63C7C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{970D3367-C942-4077-818F-4DBA16C24029} = {78D03999-1104-4DB5-96B1-7865C18E2AF3}
+		{CEE1A449-79B5-426B-9BC3-5C80D2383C04} = {970D3367-C942-4077-818F-4DBA16C24029}
+		{FF1AF53F-1209-4769-A08B-6FFBAF7CA154} = {CEE1A449-79B5-426B-9BC3-5C80D2383C04}
+		{2F2CD173-B598-4C64-897C-2E338DEE54E2} = {FF1AF53F-1209-4769-A08B-6FFBAF7CA154}
+		{8BA8DEC7-EC7E-4032-BD58-833F512DCEA0} = {2F2CD173-B598-4C64-897C-2E338DEE54E2}
+		{728C464D-6452-4DB3-AF55-139776F63C7C} = {8BA8DEC7-EC7E-4032-BD58-833F512DCEA0}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3BD7CEE8-664B-4A3D-8BA0-F037002B1E5A}
+	EndGlobalSection
+EndGlobal

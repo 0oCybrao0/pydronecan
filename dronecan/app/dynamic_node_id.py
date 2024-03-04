@@ -15,6 +15,7 @@ import dronecan
 from dronecan import UAVCANException
 from dronecan import uavcan
 
+
 logger = getLogger(__name__)
 
 

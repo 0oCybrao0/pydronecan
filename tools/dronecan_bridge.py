@@ -22,16 +22,6 @@ if len(args.ports) < 2:
     print("Must specify at least 2 ports to connect")
     sys.exit(1)
 
-drivers = []
-
-for p in args.ports:
-    try:
-        drivers.append(dronecan.driver.make_driver(p, bitrate=args.bitrate))
-    except Exception as ex:
-        print("Unable to connect to %s - %s" % (p, ex))
-        sys.exit(1)
-    print("Connected to %s" % p)
-
 class BridgeThread(object):
     def __init__(self, d, drivers, name):
         self.d = d
@@ -63,25 +53,36 @@ class BridgeThread(object):
                     d.send_frame(frame)
                 except dronecan.driver.common.TxQueueFullError:
                     pass
+                
 
-threads = []
-for i in range(len(drivers)):
-    d = drivers[i]
-    threads.append(BridgeThread(d, drivers, "d%u" % i))
-
-last_print = time.time()
-
-last_c = [0]*len(drivers)
-
-while True:
-    time.sleep(1)
-    now = time.time()
-    dt = now - last_print
-    c = [ t.count for t in threads ]
-    rates = []
+if __name__ == '__main__':
+    drivers = []
+    for p in args.ports:
+        try:
+            drivers.append(dronecan.driver.make_driver(p, bitrate=args.bitrate))
+        except Exception as ex:
+            print("Unable to connect to %s - %s" % (p, ex))
+            sys.exit(1)
+        print("Connected to %s" % p)
+        
+    threads = []
     for i in range(len(drivers)):
-        dcount = c[i] - last_c[i]
-        rates.append("%.3f" % (dcount/dt))
-    print("%s pkts/sec" % '/'.join(rates))
-    last_print = now
-    last_c = c[:]
+        d = drivers[i]
+        threads.append(BridgeThread(d, drivers, "d%u" % i))
+
+    last_print = time.time()
+
+    last_c = [0]*len(drivers)
+
+    while True:
+        time.sleep(1)
+        now = time.time()
+        dt = now - last_print
+        c = [ t.count for t in threads ]
+        rates = []
+        for i in range(len(drivers)):
+            dcount = c[i] - last_c[i]
+            rates.append("%.3f" % (dcount/dt))
+        print("%s pkts/sec" % '/'.join(rates))
+        last_print = now
+        last_c = c[:]
