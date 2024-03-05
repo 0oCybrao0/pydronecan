@@ -17,9 +17,6 @@ parser.add_argument("--node-id", default=123, type=int, help="Node ID")
 global args
 args = parser.parse_args()
 
-global _singleton
-_singleton = None
-
 # protocol constants
 PREAMBLE1 = 0xb5
 PREAMBLE2 = 0x62
@@ -157,12 +154,12 @@ class UBloxDescriptor:
             msg._buf = struct.pack(fmt, *tuple(f1))
 
         length = len(msg._buf)
-        if msg._recs:
+        if msg._recs: 
             length += len(msg._recs) * struct.calcsize(self.format2)
-        header = struct.pack('<BBBBH', PREAMBLE1, PREAMBLE2, msg_class, msg_id, length)
+        header = struct.pack('<BBBBH', PREAMBLE1, PREAMBLE2, msg_class, msg_id, length) # pack the header
         msg._buf = header + msg._buf
 
-        for r in msg._recs:
+        for r in msg._recs: # pack the records
             f2 = []
             for f in self.fields2:
                 f2.append(r[f])
@@ -356,22 +353,6 @@ class serialForwarding():
         self.restart_listen()
         timer = threading.Timer(0.01, self.check_connection)
         timer.start()
-    
-    def __del__(self):
-        print("serial closing")
-        if self.listen_sock is not None:
-            self.listen_sock.close()
-        if self.sock is not None:
-            self.sock.close()
-        if self.tunnel is not None:
-            self.tunnel.close()
-            self.tunnel = None
-        global _singleton
-        _singleton = None
-    
-    def closeEvent(self, event):
-        self.__del__()
-        super(serialForwarding, self).closeEvent(event)
         
     def restart_listen(self):
         '''stop and restart listening socket'''
@@ -393,7 +374,6 @@ class serialForwarding():
                 if ex.errno not in [ errno.EAGAIN, errno.EWOULDBLOCK ]:
                     print("ucenter socket fail")
                     self.close_socket()
-                    
                 return
             except Exception as e:
                 print(e)
@@ -499,8 +479,7 @@ def getNode():
         return node
 
 if __name__ == "__main__":
-    if _singleton is None:
-        try:
-            _singleton = serialForwarding(getNode())
-        except Exception as e:
-            print(e)
+    try:
+        serialForwarding(getNode())
+    except Exception as e:
+        print(e)
