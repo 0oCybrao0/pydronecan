@@ -1,0 +1,244 @@
+diff --git a/serial_forwarding.py b/sf2.py
+index d4c8004..569a463 100644
+--- a/serial_forwarding.py
++++ b/sf2.py
+@@ -17,9 +17,6 @@ parser.add_argument("--node-id", default=123, type=int, help="Node ID")
+ global args
+ args = parser.parse_args()
+ 
+-global _singleton
+-_singleton = None
+-
+ # protocol constants
+ PREAMBLE1 = 0xb5
+ PREAMBLE2 = 0x62
+@@ -112,7 +109,7 @@ class UBloxDescriptor:
+             return
+ 
+         size2 = struct.calcsize(self.format2)
+-        for c in range(count):
++        for _ in range(count):
+             r = UBloxAttrDict()
+             if size2 > len(buf):
+                 raise UBloxError("INVALID_SIZE=%u, " % len(buf))
+@@ -157,12 +154,12 @@ class UBloxDescriptor:
+             msg._buf = struct.pack(fmt, *tuple(f1))
+ 
+         length = len(msg._buf)
+-        if msg._recs:
++        if msg._recs: 
+             length += len(msg._recs) * struct.calcsize(self.format2)
+-        header = struct.pack('<BBBBH', PREAMBLE1, PREAMBLE2, msg_class, msg_id, length)
++        header = struct.pack('<BBBBH', PREAMBLE1, PREAMBLE2, msg_class, msg_id, length) # pack the header
+         msg._buf = header + msg._buf
+ 
+-        for r in msg._recs:
++        for r in msg._recs: # pack the records
+             f2 = []
+             for f in self.fields2:
+                 f2.append(r[f])
+@@ -225,7 +222,7 @@ class UBloxMessage:
+         if name.startswith('_'):
+             self.__dict__[name] = value
+         else:
+-            self._fields[name] = value
++            self._fields[name] = value 
+ 
+     def have_field(self, name):
+         '''return True if a message contains the given field'''
+@@ -352,29 +349,10 @@ class serialForwarding():
+         self.state = "disconnected"
+         self.tunnel = None
+         self.target_dev = -1
+-        self.ublox_msg_in = None
+-        self.ublox_msg_out = None
+         self.ublox_handling = False
+-        # self.lock_select = "UnLocked"
+         self.restart_listen()
+         timer = threading.Timer(0.01, self.check_connection)
+         timer.start()
+-    
+-    def __del__(self):
+-        print("serial closing")
+-        if self.listen_sock is not None:
+-            self.listen_sock.close()
+-        if self.sock is not None:
+-            self.sock.close()
+-        if self.tunnel is not None:
+-            self.tunnel.close()
+-            self.tunnel = None
+-        global _singleton
+-        _singleton = None
+-    
+-    def closeEvent(self, event):
+-        self.__del__()
+-        super(serialForwarding, self).closeEvent(event)
+         
+     def restart_listen(self):
+         '''stop and restart listening socket'''
+@@ -386,97 +364,7 @@ class serialForwarding():
+         self.listen_sock.setblocking(False)
+         self.listen_sock.listen(1)
+         self.state = "disconnected"
+-        
+-    def send_ublox_baud(self, send_baud, config_baud, port=1, inMask=3, outMask=3, mode=2240):
+-        '''send a CFG_PRT to set baudrate'''
+-        save_baud = self.tunnel.baudrate
+-        payload = struct.pack('<BBHIIHHHH', port, 0xff, 0, mode, config_baud, inMask, outMask, 0xFFFF, 0xFFFF)
+-        msg = UBloxMessage(msg_class=CLASS_CFG, msg_id=MSG_CFG_PRT, payload=payload)
+-        desc = msg_types[(CLASS_CFG,MSG_CFG_PRT)]
+-        desc.unpack(msg)
+-        self.tunnel.baudrate = send_baud
+-        self.tunnel.write(msg.raw())
+-        self.tunnel.baudrate = save_baud
+-
+-    def handle_ublox_message_out(self):
+-        '''print uBlox messages going from device to uCenter'''
+-        mtype = self.ublox_msg_out.msg_type()
+-        if mtype in msg_types:
+-            try:
+-                msg_types[mtype].unpack(self.ublox_msg_out)
+-                print(">> " + msg_types[mtype].format(self.ublox_msg_out))
+-                return
+-            except Exception as ex:
+-                print(ex)
+-                pass
+-        print(">> " + self.ublox_msg_out.name())
+-
+-    def handle_ublox_data_out(self, buf):
+-        '''handle ublox data from the GPS'''
+-        if not self.ublox_handling:
+-            self.ublox_msg_out = None
+-            return
+-        if self.ublox_msg_out is None:
+-            self.ublox_msg_out = UBloxMessage()
+-        while len(buf) > 0:
+-            needed = self.ublox_msg_out.needed_bytes()
+-            n = min(needed, len(buf))
+-            self.ublox_msg_out.add(buf[:n])
+-            buf = buf[n:]
+-            if self.ublox_msg_out.valid():
+-                self.handle_ublox_message_out()
+-                self.ublox_msg_out = UBloxMessage() 
+-                
+-    def delay(self, delay_s):
+-        t0 = time.time()
+-        while time.time() - t0 < delay_s:
+-            # keep the link alive
+-            self.tunnel.send_bytes(bytearray())
+-            time.sleep(0.01)
+             
+-    def handle_ublox_message_in(self):
+-        '''handle a uBlox message from uCenter'''
+-        mbuf = self.ublox_msg_in.raw()
+-        mlen = len(mbuf)
+-
+-        # avoid flooding the serial port by sleeping for a bit if we are
+-        # getting data from uCenter faster than the serial port can handle it
+-        port_rate = self.tunnel.baudrate / 10.0
+-        delay_needed = mlen / port_rate
+-        self.delay(delay_needed)
+-
+-        # write message to the tunnel
+-        self.tunnel.write(mbuf)
+-
+-        # interpret the message to see if we should change baudrate
+-        mtype = self.ublox_msg_in.msg_type()
+-        if mtype in msg_types:
+-            try:
+-                msg_types[mtype].unpack(self.ublox_msg_in)
+-                print("<< " + msg_types[mtype].format(self.ublox_msg_in))
+-                if mtype == (CLASS_CFG,MSG_CFG_PRT) and hasattr(self.ublox_msg_in,'baudRate'):
+-                    self.tunnel.baudrate = self.ublox_msg_in.baudRate
+-                    self.baud_select.setCurrentText("%u" % self.ublox_msg_in.baudRate)
+-                    print("uBlox changed baudrate to %u" % self.ublox_msg_in.baudRate)
+-                return
+-            except Exception as ex:
+-                print(ex)
+-                pass
+-        print("<< " + self.ublox_msg_in.name())
+-
+-    def handle_ublox_data_in(self, buf):
+-        '''handle ublox data from uCenter'''
+-        if self.ublox_msg_in is None:
+-            self.ublox_msg_in = UBloxMessage()
+-        while len(buf) > 0:
+-            needed = self.ublox_msg_in.needed_bytes()
+-            n = min(needed, len(buf))
+-            self.ublox_msg_in.add(buf[:n])
+-            buf = buf[n:]
+-            if self.ublox_msg_in.valid():
+-                self.handle_ublox_message_in()
+-                self.ublox_msg_in = UBloxMessage()
+-                
+     def process_socket(self):
+         '''process data from the socket'''
+         while True:
+@@ -486,7 +374,6 @@ class serialForwarding():
+                 if ex.errno not in [ errno.EAGAIN, errno.EWOULDBLOCK ]:
+                     print("ucenter socket fail")
+                     self.close_socket()
+-                    
+                 return
+             except Exception as e:
+                 print(e)
+@@ -495,12 +382,7 @@ class serialForwarding():
+ 
+             if buf is None or len(buf) == 0:
+                 break
+-            if self.ublox_handling:
+-                # we will send the data on packet boundaries
+-                self.handle_ublox_data_in(buf)
+-            else:
+-                self.ublox_msg_in = None
+-                self.tunnel.write(buf)
++            self.tunnel.write(buf)
+             self.num_tx_bytes += len(buf)
+             print("tx_bytes: %u" % self.num_tx_bytes)
+             
+@@ -514,7 +396,6 @@ class serialForwarding():
+                 break
+             try:
+                 self.sock.send(buf)
+-                self.handle_ublox_data_out(buf)
+             except Exception as e:
+                 print(e)
+                 self.close_socket()
+@@ -536,9 +417,6 @@ class serialForwarding():
+             
+     def check_connection(self):
+         '''called at 100Hz to process data'''
+-        if self.ublox_msg_in and self.ublox_msg_out is not None:
+-            print(self.ublox_msg_in)
+-            print(self.ublox_msg_out)
+         timer = threading.Timer(0.01, self.check_connection)
+         timer.start()
+         if self.sock is not None:
+@@ -562,8 +440,6 @@ class serialForwarding():
+             if self.tunnel is not None:
+                 self.tunnel.close()
+             target_node = self.node_id
+-
+-            # locked = self.lock_select.currentText() == "Locked"
+             self.tunnel = dronecan.DroneCANSerial(self.device, target_node, self.target_dev,
+                                                   node=self.node, baudrate=self.baudrate)
+             print("ucenter connection from %s" % str(self.addr))
+@@ -600,12 +476,10 @@ def getNode():
+         print(ex)
+         exit(1)
+     else:
+-        return node            
++        return node
+ 
+ if __name__ == "__main__":
+-    if _singleton is None:
+-        try:
+-            _singleton = serialForwarding(getNode())
+-        except Exception as e:
+-            print(e)
+-            
++    try:
++        serialForwarding(getNode())
++    except Exception as e:
++        print(e)
+\ No newline at end of file
